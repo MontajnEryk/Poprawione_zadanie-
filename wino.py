@@ -15,53 +15,41 @@ st.markdown(
     <style>
     /* Style the sidebar */
     .css-1d391kg {
-        border-radius: 15px;  /* Rounded corners for the sidebar */
+        border-radius: 15px;
         background-color: #f0f0f5;
     }
-    
-    /* Style the sidebar header */
     .css-1omlzdg {
         font-size: 18px;
         font-weight: bold;
         color: #333333;
     }
-    
     /* Style the main content */
     .css-ffhzg2 {
-        border-radius: 15px;  /* Rounded corners for content boxes */
+        border-radius: 15px;
         background-color: #ffffff;
         padding: 20px;
         box-shadow: 0px 4px 12px rgba(0, 0, 0, 0.1);
     }
-
-    /* Style for buttons */
     .css-1j1w6p3.edgvbvh3 {
-        border-radius: 10px;  /* Rounded corners for buttons */
+        border-radius: 10px;
         background-color: #4CAF50;
         color: white;
         padding: 10px 20px;
     }
-    
-    /* Style for the dropdown selectbox */
     .css-19yvsms {
         border-radius: 10px;
         border: 1px solid #dcdcdc;
     }
-    
-    /* Add some padding and border radius for the sliders */
     .css-1kptt2d {
         border-radius: 10px;
         padding: 10px;
         background-color: #f9f9f9;
     }
-
-    /* Style for headers */
     .css-2trqye {
         font-size: 24px;
         color: #333333;
         font-weight: 600;
     }
-
     </style>
     """, unsafe_allow_html=True)
 
@@ -75,10 +63,7 @@ st.set_page_config(
 )
 
 st.title("🍷 Wine Analytics & Food Pairings")
-st.markdown(
-    "Aplikacja do eksploracji jakości czerwonych win oraz "
-    "parowania win z jedzeniem."
-)
+st.markdown("Aplikacja do eksploracji jakości czerwonych win oraz parowania win z jedzeniem.")
 
 # ---------------------------------------------------------
 # Funkcje wczytywania danych
@@ -115,7 +100,7 @@ except Exception as e:
 st.sidebar.header("⚙️ Ustawienia")
 module = st.sidebar.radio(
     "Wybierz moduł:",
-    options=["Analiza jakości wina", "Parowanie wina z jedzeniem"]
+    options=["Analiza jakości wina", "Parowanie wina z jedzeniem", "Rekomendacje"]
 )
 
 # =========================================================
@@ -125,11 +110,7 @@ if module == "Analiza jakości wina":
     st.subheader("📊 Analiza jakości czerwonych win")
 
     if wine_quality_df is None:
-        st.error(
-            "Nie udało się wczytać `winequality-red_filled.csv`.\n\n"
-            f"Komunikat błędu:\n`{wine_quality_error}`\n\n"
-            "Upewnij się, że plik znajduje się w tym samym katalogu co `app.py`."
-        )
+        st.error(f"Nie udało się wczytać `winequality-red_filled.csv`.\n\n{wine_quality_error}")
         st.stop()
 
     df = wine_quality_df.copy()
@@ -138,96 +119,60 @@ if module == "Analiza jakości wina":
     # Podstawowe informacje
     # -------------------------
     st.markdown("### Podstawowa eksploracja danych")
-    st.write("Pierwsze wiersze datasetu:")
     st.dataframe(df.head())
 
     with st.expander("Informacje o datasetcie"):
-        col1, col2 = st.columns(2)
-        with col1:
-            st.write("**Kształt (liczba rekordów, liczba kolumn):**")
-            st.write(df.shape)
-            st.write("**Typy danych:**")
-            st.write(df.dtypes)
-        with col2:
-            st.write("**Brakujące wartości:**")
-            missing = df.isnull().sum()
-            st.write(missing[missing > 0])
-            st.write("**Duplikaty:**")
-            st.write(f"Liczba duplikatów: {df[df.duplicated()].shape[0]}")
+        st.write(f"**Kształt:** {df.shape}")
+        st.write(f"**Typy danych:**")
+        st.write(df.dtypes)
+        st.write(f"**Brakujące wartości:**")
+        st.write(df.isnull().sum())
+        st.write(f"**Duplikaty:** {df[df.duplicated()].shape[0]}")
 
     # -------------------------
     # Filtrowanie po jakości
     # -------------------------
     st.markdown("### Filtrowanie po ocenie jakości")
-    min_q = int(df["quality"].min())
-    max_q = int(df["quality"].max())
-
     quality_range = st.slider(
         "Zakres jakości (kolumna `quality`):",
-        min_value=min_q,
-        max_value=max_q,
-        value=(min_q, max_q),
+        min_value=int(df["quality"].min()),
+        max_value=int(df["quality"].max()),
+        value=(int(df["quality"].min()), int(df["quality"].max())),
         step=1
     )
 
-    feature = st.selectbox("Wybierz cechę do filtrowania:", df.columns)
-
     filtered = df[(df["quality"] >= quality_range[0]) & (df["quality"] <= quality_range[1])]
-    filtered = filtered[(filtered[feature] >= st.slider(f"Zakres {feature}", float(df[feature].min()), float(df[feature].max()), float(df[feature].mean())))]
     st.write(f"Liczba rekordów po filtrze: **{filtered.shape[0]}**")
     st.dataframe(filtered.head())
 
-    # Statystyki
-    st.write(f"Średnia dla {feature}: {filtered[feature].mean():.2f}")
-    st.write(f"Mediana dla {feature}: {filtered[feature].median():.2f}")
-    st.write(f"Min/Max dla {feature}: {filtered[feature].min():.2f} / {filtered[feature].max():.2f}")
-
     # -------------------------
-    # Rozkład cechy
+    # Wykresy
     # -------------------------
-    st.markdown("### Rozkład cechy")
     feature_choice = st.selectbox("Wybierz cechę:", df.columns)
 
     # Histogram
-    fig, ax = plt.subplots(figsize=(8, 6))  # Adjusted figure size
+    fig, ax = plt.subplots(figsize=(8, 6))
     ax.hist(df[feature_choice], bins=30, edgecolor="black")
-    ax.set_title(f"Histogram {feature_choice}")
-    ax.set_xlabel(feature_choice)
-    ax.set_ylabel("Liczba próbek")
     st.pyplot(fig)
 
     # Boxplot
-    fig_box, ax_box = plt.subplots(figsize=(8, 6))  # Adjusted figure size
+    fig_box, ax_box = plt.subplots(figsize=(8, 6))
     sns.boxplot(x=df[feature_choice], ax=ax_box)
-    ax_box.set_title(f"Boxplot {feature_choice}")
     st.pyplot(fig_box)
 
-    # Porównanie rozkładu cechy
-    quality_comparison = st.selectbox("Wybierz grupy jakości do porównania:", [5, 6])
-    group1 = df[df["quality"] == quality_comparison]
-    group2 = df[df["quality"] == (quality_comparison + 1)]
-
-    fig_comp, ax_comp = plt.subplots(figsize=(8, 6))  # Adjusted figure size
-    ax_comp.hist(group1[feature_choice], alpha=0.5, label=f"Quality {quality_comparison}")
-    ax_comp.hist(group2[feature_choice], alpha=0.5, label=f"Quality {quality_comparison + 1}")
-    ax_comp.legend()
-    ax_comp.set_title(f"Porównanie {feature_choice} dla jakości {quality_comparison} vs {quality_comparison + 1}")
-    st.pyplot(fig_comp)
-
     # -------------------------
-    # Wykres 3D
+    # Rekomendacje win
     # -------------------------
-    st.markdown("### Wykres 3D porównujący trzy cechy")
-    fig_3d = plt.figure(figsize=(8, 6))  # Adjusted figure size
-    ax_3d = fig_3d.add_subplot(111, projection="3d")
-    x = df['alcohol']
-    y = df['volatile acidity']
-    z = df['quality']
-    ax_3d.scatter(x, y, z, c=z, cmap='viridis')
-    ax_3d.set_xlabel('Alcohol')
-    ax_3d.set_ylabel('Volatile Acidity')
-    ax_3d.set_zlabel('Quality')
-    st.pyplot(fig_3d)
+    st.markdown("### Rekomendacje win na podstawie cech")
+    alcohol_range = st.slider("Zakres alkoholu:", min_value=int(df["alcohol"].min()), max_value=int(df["alcohol"].max()), value=(int(df["alcohol"].min()), int(df["alcohol"].max())))
+    acidity_range = st.slider("Zakres kwasowości:", min_value=int(df["volatile acidity"].min()), max_value=int(df["volatile acidity"].max()), value=(int(df["volatile acidity"].min()), int(df["volatile acidity"].max())))
+
+    filtered_wine = df[
+        (df["alcohol"] >= alcohol_range[0]) & (df["alcohol"] <= alcohol_range[1]) &
+        (df["volatile acidity"] >= acidity_range[0]) & (df["volatile acidity"] <= acidity_range[1])
+    ]
+    st.write(f"Liczba win spełniających kryteria: {filtered_wine.shape[0]}")
+    st.dataframe(filtered_wine)
 
 # =========================================================
 # 2. PAROWANIE WINA Z JEDZENIEM (wine_food_pairings.csv)
@@ -236,11 +181,7 @@ elif module == "Parowanie wina z jedzeniem":
     st.subheader("🍽️ Parowanie wina z jedzeniem")
 
     if pairings_df is None:
-        st.error(
-            "Nie udało się wczytać `wine_food_pairings_filled.csv`.\n\n"
-            f"Komunikat błędu:\n`{pairings_error}`\n\n"
-            "Upewnij się, że plik znajduje się w tym samym katalogu co `app.py`."
-        )
+        st.error(f"Nie udało się wczytać `wine_food_pairings_filled.csv`.\n\n{pairings_error}")
         st.stop()
 
     dfp = pairings_df.copy()
@@ -249,34 +190,18 @@ elif module == "Parowanie wina z jedzeniem":
     # Podstawowa eksploracja danych
     # -------------------------
     st.markdown("### Podstawowa eksploracja danych (parowanie wina z jedzeniem)")
-    st.write("Pierwsze wiersze datasetu:")
     st.dataframe(dfp.head())
-
-    with st.expander("Informacje o datasetcie"):
-        col1, col2 = st.columns(2)
-        with col1:
-            st.write("**Kształt:**", dfp.shape)
-            st.write("**Kolumny:**")
-            st.write(list(dfp.columns))
-        with col2:
-            st.write("**Przykładowe wartości kategorii:**")
-            st.write("wine_type:", dfp["wine_type"].unique()[:10])
-            st.write("food_category:", dfp["food_category"].unique()[:10])
-            st.write("cuisine:", dfp["cuisine"].unique()[:10])
-            st.write("quality_label:", dfp["quality_label"].unique())
 
     # -------------------------
     # Filtrowanie rekomendacji
     # -------------------------
-    st.markdown("### Filtrowanie rekomendacji")
-
     wine_type_sel = st.multiselect("Wybierz typ wina:", options=dfp["wine_type"].unique())
     food_cat_sel = st.multiselect("Wybierz kategorię jedzenia:", options=dfp["food_category"].unique())
     cuisine_sel = st.multiselect("Wybierz kuchnię:", options=dfp["cuisine"].unique())
     min_pair_quality = st.slider("Minimalna ocena parowania:", min_value=int(dfp["pairing_quality"].min()), max_value=int(dfp["pairing_quality"].max()), value=int(dfp["pairing_quality"].min()))
 
     filtered_pairings = dfp[
-        (dfp["pairing_quality"] >= min_pair_quality) & 
+        (dfp["pairing_quality"] >= min_pair_quality) &
         (dfp["wine_type"].isin(wine_type_sel) if wine_type_sel else True) &
         (dfp["food_category"].isin(food_cat_sel) if food_cat_sel else True) &
         (dfp["cuisine"].isin(cuisine_sel) if cuisine_sel else True)
@@ -284,7 +209,20 @@ elif module == "Parowanie wina z jedzeniem":
     st.write(f"Liczba rekordów po filtrze: **{filtered_pairings.shape[0]}**")
     st.dataframe(filtered_pairings.head())
 
-    # Statystyki
-    st.write(f"Średnia ocena parowania: {filtered_pairings['pairing_quality'].mean():.2f}")
-    st.write(f"Mediana oceny parowania: {filtered_pairings['pairing_quality'].median():.2f}")
-    st.write(f"Min/Max oceny parowania: {filtered_pairings['pairing_quality'].min():.2f} / {filtered_pairings['pairing_quality'].max():.2f}")
+# =========================================================
+# 3. Rekomendacje win na podstawie jakości i cech
+# =========================================================
+elif module == "Rekomendacje":
+    st.subheader("🍇 Rekomendacje win")
+    quality_input = st.slider("Wybierz jakość wina (1-10):", 1, 10, 5)
+    alcohol_input = st.slider("Zakres alkoholu:", min_value=0, max_value=15, value=(5, 12))
+    acidity_input = st.slider("Zakres kwasowości:", min_value=0.1, max_value=1.0, value=(0.2, 0.8))
+
+    recommended_wines = wine_quality_df[
+        (wine_quality_df["quality"] == quality_input) &
+        (wine_quality_df["alcohol"] >= alcohol_input[0]) & (wine_quality_df["alcohol"] <= alcohol_input[1]) &
+        (wine_quality_df["volatile acidity"] >= acidity_input[0]) & (wine_quality_df["volatile acidity"] <= acidity_input[1])
+    ]
+    st.write(f"Liczba rekomendowanych win: **{recommended_wines.shape[0]}**")
+    st.dataframe(recommended_wines)
+
